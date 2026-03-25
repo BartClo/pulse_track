@@ -58,9 +58,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   todayValue: data.todayDisplay,
                   onProfileTap: () {
                     Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => const ProfileScreen(),
-                      ),
+                      MaterialPageRoute(builder: (_) => const ProfileScreen()),
                     );
                   },
                 ),

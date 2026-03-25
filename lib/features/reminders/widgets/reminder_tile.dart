@@ -124,7 +124,9 @@ class ReminderTile extends StatelessWidget {
                             padding: const EdgeInsets.all(6),
                             decoration: BoxDecoration(
                               color: isEnabled
-                                  ? const Color(0xFF1E88E5).withValues(alpha: 0.1)
+                                  ? const Color(
+                                      0xFF1E88E5,
+                                    ).withValues(alpha: 0.1)
                                   : Colors.grey.shade100,
                               borderRadius: BorderRadius.circular(8),
                             ),
@@ -158,7 +160,9 @@ class ReminderTile extends StatelessWidget {
                   value: isEnabled,
                   onChanged: onToggle,
                   activeThumbColor: const Color(0xFF1E88E5),
-                  activeTrackColor: const Color(0xFF1E88E5).withValues(alpha: 0.4),
+                  activeTrackColor: const Color(
+                    0xFF1E88E5,
+                  ).withValues(alpha: 0.4),
                   inactiveThumbColor: Colors.grey.shade400,
                   inactiveTrackColor: Colors.grey.shade300,
                 ),

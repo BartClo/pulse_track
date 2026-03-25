@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
-import 'features/dashboard/screens/dashboard_screen.dart';
+import 'features/onboarding/screens/onboarding_flow_screen.dart';
 import 'features/reminders/screens/alarm_screen.dart';
 import 'data/datasources/local_db.dart';
 import 'services/notification_service.dart';
+import 'services/insight_notification_service.dart';
+import 'data/repositories/pressure_repository.dart';
 
 /// Global navigator key for navigation from notifications
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
@@ -19,6 +21,12 @@ void main() async {
   // Sync existing reminders with notifications
   await NotificationService.instance.syncAllReminders();
 
+  // Run daily insight checks (in-app trigger)
+  final recentReadings = await PressureRepository.instance.getReadingsLastDays(
+    2,
+  );
+  await InsightNotificationService.instance.runDailyCheck(recentReadings);
+
   runApp(const MyApp());
 }
 
@@ -33,7 +41,7 @@ class _MyAppState extends State<MyApp> {
   @override
   void initState() {
     super.initState();
-    
+
     // Set up alarm callback
     NotificationService.onAlarmTriggered = _showAlarmScreen;
   }
@@ -42,10 +50,8 @@ class _MyAppState extends State<MyApp> {
     // Navigate to alarm screen
     navigatorKey.currentState?.push(
       MaterialPageRoute(
-        builder: (_) => AlarmScreen(
-          reminderId: reminderId,
-          reminderLabel: label,
-        ),
+        builder: (_) =>
+            AlarmScreen(reminderId: reminderId, reminderLabel: label),
       ),
     );
   }
@@ -64,7 +70,7 @@ class _MyAppState extends State<MyApp> {
         useMaterial3: true,
         scaffoldBackgroundColor: const Color(0xFFF2F4F8),
       ),
-      home: const DashboardScreen(),
+      home: const AppEntryScreen(),
     );
   }
 }

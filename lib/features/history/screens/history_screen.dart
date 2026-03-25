@@ -1,14 +1,11 @@
 import 'package:flutter/material.dart';
-import 'dart:io';
-import 'package:path_provider/path_provider.dart';
-import 'package:share_plus/share_plus.dart';
+import '../../../data/repositories/pressure_repository.dart';
+import '../../../data/repositories/user_profile_repository.dart';
+import '../../../models/dashboard_data.dart';
+import '../../../services/export_service.dart';
 import '../widgets/history_filter_chips.dart';
 import '../widgets/date_section_header.dart';
 import '../widgets/history_reading_card.dart';
-import '../../../models/dashboard_data.dart';
-import '../../../data/repositories/pressure_repository.dart';
-import '../../../data/repositories/user_profile_repository.dart';
-import '../../../models/user_profile.dart';
 
 class HistoryScreen extends StatefulWidget {
   const HistoryScreen({super.key});
@@ -29,11 +26,42 @@ class _HistoryScreenState extends State<HistoryScreen> {
     _historyStream = PressureRepository.instance.watchHistoryData();
   }
 
+  Future<ExportFormat?> _selectExportFormat() {
+    return showModalBottomSheet<ExportFormat>(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.table_chart_outlined),
+                title: const Text('CSV'),
+                onTap: () => Navigator.of(context).pop(ExportFormat.csv),
+              ),
+              ListTile(
+                leading: const Icon(Icons.picture_as_pdf_outlined),
+                title: const Text('PDF'),
+                onTap: () => Navigator.of(context).pop(ExportFormat.pdf),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   Future<void> _exportData() async {
     if (_isExporting) return;
-    
+
+    final format = await _selectExportFormat();
+    if (format == null) return;
+
     setState(() => _isExporting = true);
-    
+
     try {
       final readings = await PressureRepository.instance.getAllReadings();
 
@@ -43,43 +71,31 @@ class _HistoryScreenState extends State<HistoryScreen> {
           SnackBar(
             content: const Text('No hay datos para exportar'),
             behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
           ),
         );
         return;
       }
-      
-      // Build CSV content with user profile metadata
-      final buffer = StringBuffer();
-      final UserProfile? profile = await UserProfileRepository.instance.getProfile();
-      if (profile != null) {
-        buffer.writeln('# Usuario: ${profile.name}');
-        buffer.writeln('# Edad: ${profile.age}  Peso: ${profile.weight}kg  Altura: ${profile.height}cm');
-        buffer.writeln('');
-      }
-      buffer.writeln('Fecha,Hora,Sistólica,Diastólica,Pulso,Estado');
-      
-      for (final reading in readings) {
-        final date = '${reading.date.day.toString().padLeft(2, '0')}/${reading.date.month.toString().padLeft(2, '0')}/${reading.date.year}';
-        final time = '${reading.date.hour.toString().padLeft(2, '0')}:${reading.date.minute.toString().padLeft(2, '0')}';
-        final status = _getStatus(reading.systolic, reading.diastolic);
-        buffer.writeln('$date,$time,${reading.systolic},${reading.diastolic},${reading.pulse},$status');
-      }
-      
-      // Save to temporary file
-      final tempDir = await getTemporaryDirectory();
-      final timestamp = DateTime.now().millisecondsSinceEpoch;
-      final file = File('${tempDir.path}/pulsetrack_export_$timestamp.csv');
-      await file.writeAsString(buffer.toString());
-      
+
+      final profile = await UserProfileRepository.instance.ensureProfile();
+      final exportService = ExportService.instance;
+      final filePath = format == ExportFormat.pdf
+          ? await exportService.exportToPdf(readings, profile)
+          : await exportService.exportToCsv(readings, profile);
+      await exportService.shareFile(filePath);
+
       if (!mounted) return;
-      
-      // Share the file
-      await Share.shareXFiles(
-        [XFile(file.path)],
-        subject: 'PulseTrack - Historial de Presión Arterial',
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Archivo exportado correctamente'),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
+        ),
       );
-      
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -87,20 +103,14 @@ class _HistoryScreenState extends State<HistoryScreen> {
           content: Text('Error al exportar: $e'),
           backgroundColor: Colors.red.shade400,
           behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
         ),
       );
     } finally {
       if (mounted) setState(() => _isExporting = false);
     }
-  }
-  
-  String _getStatus(int systolic, int diastolic) {
-    if (systolic < 120 && diastolic < 80) return 'Normal';
-    if (systolic < 130 && diastolic < 80) return 'Elevada';
-    if (systolic < 140 || diastolic < 90) return 'HTA Etapa 1';
-    if (systolic >= 140 || diastolic >= 90) return 'HTA Etapa 2';
-    return 'Desconocido';
   }
 
   @override
@@ -124,10 +134,23 @@ class _HistoryScreenState extends State<HistoryScreen> {
           ),
         ),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.download_outlined, color: Color(0xFF1A1A2E)),
-            onPressed: _exportData,
-          ),
+          if (_isExporting)
+            const Padding(
+              padding: EdgeInsets.only(right: 16),
+              child: SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
+            )
+          else
+            IconButton(
+              icon: const Icon(
+                Icons.download_outlined,
+                color: Color(0xFF1A1A2E),
+              ),
+              onPressed: _exportData,
+            ),
         ],
       ),
       body: StreamBuilder<HistoryData>(

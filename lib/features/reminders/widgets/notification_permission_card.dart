@@ -15,7 +15,9 @@ class NotificationPermissionCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: const Color(0xFFE3F2FD), // Light blue background
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFF1E88E5).withValues(alpha: 0.2)),
+        border: Border.all(
+          color: const Color(0xFF1E88E5).withValues(alpha: 0.2),
+        ),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,

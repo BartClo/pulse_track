@@ -145,7 +145,7 @@ class _ScanScreenState extends State<ScanScreen> with WidgetsBindingObserver {
       });
     }
   }
-  
+
   /// Process image using smart OCR (combines full image + region-based)
   Future<void> _processImageWithRegions(File imageFile) async {
     try {
@@ -183,7 +183,7 @@ class _ScanScreenState extends State<ScanScreen> with WidgetsBindingObserver {
       });
     }
   }
-  
+
   /// Map SmartOcrService confidence to ParseConfidence for UI compatibility
   ParseConfidence _mapConfidence(OcrConfidence conf) {
     switch (conf) {
@@ -331,7 +331,7 @@ class _ScanScreenState extends State<ScanScreen> with WidgetsBindingObserver {
                 ),
               ),
             ),
-            
+
             // Instruction text below frame
             Positioned(
               top: MediaQuery.of(context).size.height * 0.70,
@@ -611,7 +611,7 @@ class ScanFramePainter extends CustomPainter {
     // Dashed line helper
     const dashWidth = 8.0;
     const dashSpace = 6.0;
-    
+
     // First divider (between SYS and DIA)
     final y1 = frameTop + regionHeight;
     double startX = frameLeft + 20;
@@ -653,7 +653,10 @@ class ScanFramePainter extends CustomPainter {
     textPainter.layout();
     textPainter.paint(
       canvas,
-      Offset(frameLeft + frameWidth - textPainter.width - 12, frameTop + regionHeight / 2 - textPainter.height / 2),
+      Offset(
+        frameLeft + frameWidth - textPainter.width - 12,
+        frameTop + regionHeight / 2 - textPainter.height / 2,
+      ),
     );
 
     // DIA label
@@ -661,7 +664,10 @@ class ScanFramePainter extends CustomPainter {
     textPainter.layout();
     textPainter.paint(
       canvas,
-      Offset(frameLeft + frameWidth - textPainter.width - 12, frameTop + regionHeight * 1.5 - textPainter.height / 2),
+      Offset(
+        frameLeft + frameWidth - textPainter.width - 12,
+        frameTop + regionHeight * 1.5 - textPainter.height / 2,
+      ),
     );
 
     // PUL label
@@ -669,7 +675,10 @@ class ScanFramePainter extends CustomPainter {
     textPainter.layout();
     textPainter.paint(
       canvas,
-      Offset(frameLeft + frameWidth - textPainter.width - 12, frameTop + regionHeight * 2.5 - textPainter.height / 2),
+      Offset(
+        frameLeft + frameWidth - textPainter.width - 12,
+        frameTop + regionHeight * 2.5 - textPainter.height / 2,
+      ),
     );
   }
 

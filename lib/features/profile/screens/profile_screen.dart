@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../../data/repositories/user_profile_repository.dart';
+import '../../../data/repositories/pressure_repository.dart';
 import '../../../models/user_profile.dart';
-import '../../history/screens/history_screen.dart';
+import '../../../services/export_service.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -12,11 +13,100 @@ class ProfileScreen extends StatefulWidget {
 
 class _ProfileScreenState extends State<ProfileScreen> {
   late final Stream<UserProfile?> _profileStream;
+  bool _isExporting = false;
 
   @override
   void initState() {
     super.initState();
     _profileStream = UserProfileRepository.instance.watchProfile();
+  }
+
+  Future<ExportFormat?> _selectExportFormat() {
+    return showModalBottomSheet<ExportFormat>(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.table_chart_outlined),
+                title: const Text('CSV'),
+                onTap: () => Navigator.of(context).pop(ExportFormat.csv),
+              ),
+              ListTile(
+                leading: const Icon(Icons.picture_as_pdf_outlined),
+                title: const Text('PDF'),
+                onTap: () => Navigator.of(context).pop(ExportFormat.pdf),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _exportData(UserProfile? profile) async {
+    if (_isExporting) return;
+
+    final format = await _selectExportFormat();
+    if (format == null) return;
+
+    setState(() => _isExporting = true);
+
+    try {
+      final readings = await PressureRepository.instance.getAllReadings();
+
+      if (readings.isEmpty) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('No hay datos para exportar'),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
+          ),
+        );
+        return;
+      }
+
+      final ensuredProfile =
+          profile ?? await UserProfileRepository.instance.ensureProfile();
+      final exportService = ExportService.instance;
+      final filePath = format == ExportFormat.pdf
+          ? await exportService.exportToPdf(readings, ensuredProfile)
+          : await exportService.exportToCsv(readings, ensuredProfile);
+      await exportService.shareFile(filePath);
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Archivo exportado correctamente'),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error al exportar: $e'),
+          backgroundColor: Colors.red.shade400,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _isExporting = false);
+    }
   }
 
   @override
@@ -47,7 +137,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     children: [
                       _buildPersonalInfoCard(profile),
                       const SizedBox(height: 16),
-                      _buildExportCard(),
+                      _buildExportCard(profile),
                       const SizedBox(height: 16),
                       _buildSettingsCard(),
                       const SizedBox(height: 16),
@@ -119,10 +209,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         SizedBox(height: 4),
                         Text(
                           'Gestiona tu información y preferencias',
-                          style: TextStyle(
-                            color: Colors.white70,
-                            fontSize: 14,
-                          ),
+                          style: TextStyle(color: Colors.white70, fontSize: 14),
                         ),
                       ],
                     ),
@@ -165,7 +252,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
               child: TextButton.icon(
                 onPressed: () => _openEditProfileSheet(profile),
                 icon: const Icon(Icons.edit_outlined),
-                label: Text(isEmpty ? 'Agregar información' : 'Editar información'),
+                label: Text(
+                  isEmpty ? 'Agregar información' : 'Editar información',
+                ),
               ),
             ),
           ],
@@ -182,10 +271,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         children: [
           Text(
             label,
-            style: TextStyle(
-              fontSize: 15,
-              color: Colors.grey.shade600,
-            ),
+            style: TextStyle(fontSize: 15, color: Colors.grey.shade600),
           ),
           Text(
             value,
@@ -200,7 +286,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildExportCard() {
+  Widget _buildExportCard(UserProfile? profile) {
     return Card(
       elevation: 0,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
@@ -230,13 +316,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   borderRadius: BorderRadius.circular(16),
                 ),
               ),
-              onPressed: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => const HistoryScreen()),
-                );
-              },
-              icon: const Icon(Icons.download_outlined),
-              label: const Text('Exportar historial'),
+              onPressed: _isExporting ? null : () => _exportData(profile),
+              icon: _isExporting
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                  : const Icon(Icons.download_outlined),
+              label: Text(_isExporting ? 'Exportando...' : 'Exportar historial'),
             ),
           ],
         ),
@@ -281,10 +372,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           Expanded(
             child: Text(
               label,
-              style: const TextStyle(
-                fontSize: 15,
-                fontWeight: FontWeight.w500,
-              ),
+              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
             ),
           ),
           const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
@@ -321,10 +409,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           SizedBox(height: 8),
           Text(
             'Todos tus datos de salud se almacenan de forma segura en tu dispositivo. No compartimos información personal con terceros.',
-            style: TextStyle(
-              fontSize: 14,
-              color: Color(0xFF1A1A2E),
-            ),
+            style: TextStyle(fontSize: 14, color: Color(0xFF1A1A2E)),
           ),
         ],
       ),
@@ -342,19 +427,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
             const SizedBox(height: 16),
             const Text(
               'Error al cargar el perfil',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
-              ),
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
             ),
             const SizedBox(height: 8),
             Text(
               error,
               textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.grey.shade600,
-              ),
+              style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
             ),
           ],
         ),
@@ -364,8 +443,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> _openEditProfileSheet(UserProfile? profile) async {
     final nameController = TextEditingController(text: profile?.name ?? '');
-    final ageController =
-        TextEditingController(text: profile != null ? profile.age.toString() : '');
+    final ageController = TextEditingController(
+      text: profile != null ? profile.age.toString() : '',
+    );
     final weightController = TextEditingController(
       text: profile != null ? profile.weight.toString() : '',
     );
@@ -391,18 +471,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
           final weight = double.parse(weightController.text.trim());
           final height = double.parse(heightController.text.trim());
 
-          final newProfile = (profile ?? UserProfile(
-                name: nameController.text.trim(),
-                age: age,
-                weight: weight,
-                height: height,
-              ))
-              .copyWith(
-            name: nameController.text.trim(),
-            age: age,
-            weight: weight,
-            height: height,
-          );
+          final newProfile =
+              (profile ??
+                      UserProfile(
+                        name: nameController.text.trim(),
+                        age: age,
+                        weight: weight,
+                        height: height,
+                      ))
+                  .copyWith(
+                    name: nameController.text.trim(),
+                    age: age,
+                    weight: weight,
+                    height: height,
+                  );
 
           isSaving = true;
           try {
@@ -415,9 +497,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
           } catch (e) {
             isSaving = false;
             if (!context.mounted) return;
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('Error al guardar: $e')),
-            );
+            ScaffoldMessenger.of(
+              context,
+            ).showSnackBar(SnackBar(content: Text('Error al guardar: $e')));
           }
         }
 
@@ -458,8 +540,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   _textField(
                     label: 'Nombre',
                     controller: nameController,
-                    validator: (value) =>
-                        value == null || value.trim().isEmpty ? 'Ingresa tu nombre' : null,
+                    validator: (value) => value == null || value.trim().isEmpty
+                        ? 'Ingresa tu nombre'
+                        : null,
                   ),
                   Row(
                     children: [
@@ -482,8 +565,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         child: _textField(
                           label: 'Peso (kg)',
                           controller: weightController,
-                          keyboardType:
-                              const TextInputType.numberWithOptions(decimal: true),
+                          keyboardType: const TextInputType.numberWithOptions(
+                            decimal: true,
+                          ),
                           validator: (value) {
                             final number = double.tryParse(value ?? '');
                             if (number == null || number <= 0) {
@@ -498,8 +582,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   _textField(
                     label: 'Altura (cm)',
                     controller: heightController,
-                    keyboardType:
-                        const TextInputType.numberWithOptions(decimal: true),
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
                     validator: (value) {
                       final number = double.tryParse(value ?? '');
                       if (number == null || number <= 0) {
@@ -533,9 +618,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
 
     if (result == true && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Perfil actualizado')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Perfil actualizado')));
     }
   }
 
@@ -555,12 +640,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
         validator: validator,
         decoration: InputDecoration(
           labelText: label,
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
         ),
       ),
     );
   }
-
 }

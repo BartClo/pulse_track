@@ -114,24 +114,22 @@ class OcrParser {
   final double overallConfidence;
 
   OcrParser._(this.result)
-      : systolic = result.systolic,
-        diastolic = result.diastolic,
-        pulse = result.pulse,
-        rawText = result.rawText,
-        cleanedText = result.cleanedText,
-        isValid = result.systolic != null && result.diastolic != null,
-        systolicConfidence = _parseConfidenceLabel(result.systolicConfidence),
-        diastolicConfidence = _parseConfidenceLabel(result.diastolicConfidence),
-        pulseConfidence = result.pulse != null
-            ? _parseConfidenceLabel(result.pulseConfidence)
-            : ParseConfidence.none,
-        overallConfidence = result.confidenceScore;
+    : systolic = result.systolic,
+      diastolic = result.diastolic,
+      pulse = result.pulse,
+      rawText = result.rawText,
+      cleanedText = result.cleanedText,
+      isValid = result.systolic != null && result.diastolic != null,
+      systolicConfidence = _parseConfidenceLabel(result.systolicConfidence),
+      diastolicConfidence = _parseConfidenceLabel(result.diastolicConfidence),
+      pulseConfidence = result.pulse != null
+          ? _parseConfidenceLabel(result.pulseConfidence)
+          : ParseConfidence.none,
+      overallConfidence = result.confidenceScore;
 
   /// Parse raw OCR text and extract blood pressure values.
   factory OcrParser.parse(String text) {
-    final pipelineResult = interpretText(
-      rawText: text,
-    );
+    final pipelineResult = interpretText(rawText: text);
     return OcrParser._(pipelineResult);
   }
 
@@ -154,11 +152,7 @@ class OcrParser {
       );
     }
 
-    final validation = _validateAssignment(
-      systolic,
-      diastolic,
-      pulse,
-    );
+    final validation = _validateAssignment(systolic, diastolic, pulse);
     warnings.addAll(validation.warnings);
 
     final systolicConfidence = _resolveConfidence(
@@ -199,7 +193,8 @@ class OcrParser {
       discardedValues: const [],
       warnings: warnings,
       requiresManualInput: requiresManualInput,
-      allowRetake: requiresManualInput ||
+      allowRetake:
+          requiresManualInput ||
           warnings.isNotEmpty ||
           systolicConfidence == 'low' ||
           diastolicConfidence == 'low',
@@ -225,11 +220,13 @@ class OcrParser {
       ...labeledValues.values,
     ];
 
-    final discardedValues =
-        mergedNumbers.where((n) => n < 40 || n > 200).toList();
+    final discardedValues = mergedNumbers
+        .where((n) => n < 40 || n > 200)
+        .toList();
 
-    final inRangeNumbers =
-        mergedNumbers.where((n) => n >= 40 && n <= 200).toList();
+    final inRangeNumbers = mergedNumbers
+        .where((n) => n >= 40 && n <= 200)
+        .toList();
     final correctedNumbers = _applyCommonConfusionCorrections(inRangeNumbers);
     final groupedNumbers = _groupSimilarValues(correctedNumbers);
     final filteredCandidates = _filterCandidates(groupedNumbers);
@@ -275,7 +272,8 @@ class OcrParser {
 
     final requiresManualInput =
         assignment.systolic == null || assignment.diastolic == null;
-    final allowRetake = requiresManualInput ||
+    final allowRetake =
+        requiresManualInput ||
         warnings.isNotEmpty ||
         systolicConfidence == 'low' ||
         diastolicConfidence == 'low';
@@ -537,22 +535,23 @@ Map<String, int> _extractLabeledValues(String text) {
   systolic ??= parseMatch(RegExp(r'SYST(?:OLIC)?[:\s]*(\d{2,3})'));
   final systolicValue =
       (systolic != null && _ValueBand.systolic.isWithin(systolic))
-          ? systolic
-          : null;
+      ? systolic
+      : null;
   if (systolicValue != null) result['systolic'] = systolicValue;
 
   int? diastolic = parseMatch(RegExp(r'DIA[:\s]*(\d{2,3})'));
   diastolic ??= parseMatch(RegExp(r'DIAST(?:OLIC)?[:\s]*(\d{2,3})'));
   final diastolicValue =
       (diastolic != null && _ValueBand.diastolic.isWithin(diastolic))
-          ? diastolic
-          : null;
+      ? diastolic
+      : null;
   if (diastolicValue != null) result['diastolic'] = diastolicValue;
 
   int? pulse = parseMatch(RegExp(r'(?:PUL|PULSE|BPM)[:\s]*(\d{2,3})'));
   pulse ??= parseMatch(RegExp(r'(\d{2,3})[:\s]*BPM'));
-  final pulseValue =
-      (pulse != null && _ValueBand.pulse.isWithin(pulse)) ? pulse : null;
+  final pulseValue = (pulse != null && _ValueBand.pulse.isWithin(pulse))
+      ? pulse
+      : null;
   if (pulseValue != null) result['pulse'] = pulseValue;
 
   return result;
@@ -568,17 +567,15 @@ List<int> _applyCommonConfusionCorrections(List<int> numbers) {
   final preferred5060 = _preferredValue(counts, 50, 60, tieBreaker: 60);
   final preferred9596 = _preferredValue(counts, 95, 96, tieBreaker: 95);
 
-  return numbers
-      .map((value) {
-        if (preferred5060 != null && (value == 50 || value == 60)) {
-          return preferred5060;
-        }
-        if (preferred9596 != null && (value == 95 || value == 96)) {
-          return preferred9596;
-        }
-        return value;
-      })
-      .toList();
+  return numbers.map((value) {
+    if (preferred5060 != null && (value == 50 || value == 60)) {
+      return preferred5060;
+    }
+    if (preferred9596 != null && (value == 95 || value == 96)) {
+      return preferred9596;
+    }
+    return value;
+  }).toList();
 }
 
 int? _preferredValue(
@@ -594,10 +591,7 @@ int? _preferredValue(
   return firstCount > secondCount ? first : second;
 }
 
-List<int> _groupSimilarValues(
-  List<int> numbers, {
-  int tolerance = 2,
-}) {
+List<int> _groupSimilarValues(List<int> numbers, {int tolerance = 2}) {
   if (numbers.isEmpty) return const <int>[];
 
   final frequencies = <int, int>{};
@@ -642,11 +636,9 @@ List<int> _groupSimilarValues(
 }
 
 List<int> _filterCandidates(List<int> numbers) {
-  final filtered = numbers
-      .where((value) => value >= 40 && value <= 200)
-      .toSet()
-      .toList()
-    ..sort((a, b) => b.compareTo(a));
+  final filtered =
+      numbers.where((value) => value >= 40 && value <= 200).toSet().toList()
+        ..sort((a, b) => b.compareTo(a));
   return filtered;
 }
 
@@ -696,10 +688,9 @@ _AssignmentResult _assignValues(
   if (diastolic != null) {
     remaining.remove(diastolic);
   } else if (remaining.isNotEmpty) {
-    final candidates = remaining
-        .where((value) => value <= _ValueBand.diastolic.max)
-        .toList()
-      ..sort((a, b) => b.compareTo(a));
+    final candidates =
+        remaining.where((value) => value <= _ValueBand.diastolic.max).toList()
+          ..sort((a, b) => b.compareTo(a));
 
     for (final value in candidates) {
       if (systolic == null || value < systolic) {
@@ -714,9 +705,9 @@ _AssignmentResult _assignValues(
     diastolic = remaining
         .where((value) => systolic == null || value < systolic)
         .fold<int?>(null, (acc, value) {
-      if (acc == null) return value;
-      return value > acc ? value : acc;
-    });
+          if (acc == null) return value;
+          return value > acc ? value : acc;
+        });
   }
 
   if (systolic != null && diastolic != null && systolic <= diastolic) {

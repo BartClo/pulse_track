@@ -24,7 +24,7 @@ class NotificationService {
       FlutterLocalNotificationsPlugin();
 
   bool _initialized = false;
-  
+
   /// Callback for when alarm screen should be shown
   static void Function(int reminderId, String label)? onAlarmTriggered;
 
@@ -99,8 +99,10 @@ class NotificationService {
   }
 
   Future<void> _createNotificationChannel() async {
-    final android = _notifications.resolvePlatformSpecificImplementation<
-        AndroidFlutterLocalNotificationsPlugin>();
+    final android = _notifications
+        .resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin
+        >();
 
     if (android != null) {
       // Main alarm channel with maximum priority (uses default alarm sound)
@@ -173,20 +175,24 @@ class NotificationService {
   /// Requests permission to show notifications (iOS/Android 13+)
   Future<bool> requestPermission() async {
     if (Platform.isAndroid) {
-      final android = _notifications.resolvePlatformSpecificImplementation<
-          AndroidFlutterLocalNotificationsPlugin>();
+      final android = _notifications
+          .resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin
+          >();
 
       // Request notification permission
-      final notificationGranted =
-          await android?.requestNotificationsPermission();
+      final notificationGranted = await android
+          ?.requestNotificationsPermission();
 
       // Request exact alarm permission for Android 12+
       final exactAlarmGranted = await android?.requestExactAlarmsPermission();
 
       return (notificationGranted ?? false) && (exactAlarmGranted ?? true);
     } else if (Platform.isIOS) {
-      final ios = _notifications.resolvePlatformSpecificImplementation<
-          IOSFlutterLocalNotificationsPlugin>();
+      final ios = _notifications
+          .resolvePlatformSpecificImplementation<
+            IOSFlutterLocalNotificationsPlugin
+          >();
       final granted = await ios?.requestPermissions(
         alert: true,
         badge: true,
@@ -200,8 +206,10 @@ class NotificationService {
   /// Checks if notifications are permitted
   Future<bool> checkPermission() async {
     if (Platform.isAndroid) {
-      final android = _notifications.resolvePlatformSpecificImplementation<
-          AndroidFlutterLocalNotificationsPlugin>();
+      final android = _notifications
+          .resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin
+          >();
       return await android?.areNotificationsEnabled() ?? false;
     }
     return true;
@@ -235,7 +243,16 @@ class NotificationService {
           playSound: true,
           enableVibration: true,
           vibrationPattern: Int64List.fromList([
-            0, 1000, 500, 1000, 500, 1000, 500, 1000, 500, 1000
+            0,
+            1000,
+            500,
+            1000,
+            500,
+            1000,
+            500,
+            1000,
+            500,
+            1000,
           ]),
           enableLights: true,
           ledColor: const Color(0xFF1E88E5),
@@ -285,7 +302,9 @@ class NotificationService {
 
   /// Schedules a snooze notification for 5 minutes from now.
   Future<void> scheduleSnooze(int originalReminderId, String label) async {
-    final snoozeTime = tz.TZDateTime.now(tz.local).add(const Duration(minutes: 5));
+    final snoozeTime = tz.TZDateTime.now(
+      tz.local,
+    ).add(const Duration(minutes: 5));
     final snoozeId = originalReminderId + 10000; // Unique ID for snooze
 
     debugPrint('Scheduling snooze $snoozeId for $snoozeTime');
@@ -305,9 +324,7 @@ class NotificationService {
           icon: '@mipmap/ic_launcher',
           playSound: true,
           enableVibration: true,
-          vibrationPattern: Int64List.fromList([
-            0, 1000, 500, 1000, 500, 1000
-          ]),
+          vibrationPattern: Int64List.fromList([0, 1000, 500, 1000, 500, 1000]),
           fullScreenIntent: true,
           category: AndroidNotificationCategory.alarm,
           visibility: NotificationVisibility.public,
@@ -421,5 +438,37 @@ class NotificationService {
         onAlarmTriggered!(999, 'Prueba');
       }
     });
+  }
+
+  /// Shows an immediate insight notification.
+  Future<void> showInsightNotification({
+    required int id,
+    required String title,
+    required String body,
+    required String payload,
+  }) async {
+    await _notifications.show(
+      id,
+      title,
+      body,
+      NotificationDetails(
+        android: const AndroidNotificationDetails(
+          'reminders_channel',
+          'Recordatorios',
+          channelDescription: 'Recordatorios para medir presión arterial',
+          importance: Importance.high,
+          priority: Priority.high,
+          icon: '@mipmap/ic_launcher',
+          playSound: true,
+          enableVibration: true,
+        ),
+        iOS: const DarwinNotificationDetails(
+          presentAlert: true,
+          presentBadge: true,
+          presentSound: true,
+        ),
+      ),
+      payload: payload,
+    );
   }
 }

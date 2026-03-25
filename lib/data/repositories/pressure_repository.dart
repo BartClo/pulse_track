@@ -2,6 +2,7 @@ import 'package:isar/isar.dart';
 import '../../models/pressure_reading.dart';
 import '../../models/dashboard_data.dart';
 import '../datasources/local_db.dart';
+import '../../services/insight_notification_service.dart';
 
 /// Repository that abstracts all database operations for PressureReading.
 ///
@@ -26,6 +27,8 @@ class PressureRepository {
     await _db.writeTxn(() async {
       await _db.pressureReadings.put(reading);
     });
+    final recentReadings = await getReadingsLastDays(2);
+    await InsightNotificationService.instance.checkAfterSave(recentReadings);
   }
 
   /// Deletes a reading by its ID.

@@ -23,11 +23,13 @@ class OcrService {
   Future<OcrParser> processImage(File imageFile) async {
     // Estimate image quality
     final quality = await _preprocessor.estimateQuality(imageFile);
-    debugPrint('OCR: Image quality estimate: ${(quality * 100).toStringAsFixed(0)}%');
-    
+    debugPrint(
+      'OCR: Image quality estimate: ${(quality * 100).toStringAsFixed(0)}%',
+    );
+
     // Preprocess the image
     final processedFile = await _preprocessor.preprocess(imageFile);
-    
+
     // Perform OCR
     final inputImage = InputImage.fromFile(processedFile);
     final recognizedText = await _textRecognizer.processImage(inputImage);
@@ -39,7 +41,7 @@ class OcrService {
     debugPrint('OCR Raw Text:');
     debugPrint(fullText);
     debugPrint('──────────────────────────────────');
-    
+
     // Also extract text block by block for better analysis
     final blockTexts = <String>[];
     for (final block in recognizedText.blocks) {
@@ -49,7 +51,7 @@ class OcrService {
 
     // Parse the recognized text
     final result = OcrParser.parse(fullText);
-    
+
     debugPrint('OCR Result: $result');
     debugPrint('──────────────────────────────────');
 
@@ -67,7 +69,7 @@ class OcrService {
     final recognizedText = await _textRecognizer.processImage(inputImage);
     return recognizedText.text;
   }
-  
+
   /// Get detailed text recognition results with block positions
   Future<RecognizedText> getDetailedRecognition(File imageFile) async {
     final inputImage = InputImage.fromFile(imageFile);

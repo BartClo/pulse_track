@@ -233,7 +233,9 @@ class _ConfirmScanScreenState extends State<ConfirmScanScreen> {
                 decoration: BoxDecoration(
                   color: _statusColor.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: _statusColor.withValues(alpha: 0.3)),
+                  border: Border.all(
+                    color: _statusColor.withValues(alpha: 0.3),
+                  ),
                 ),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -318,7 +320,9 @@ class _ConfirmScanScreenState extends State<ConfirmScanScreen> {
                 SizedBox(
                   width: double.infinity,
                   child: OutlinedButton.icon(
-                    onPressed: _isSaving ? null : () => Navigator.of(context).pop(),
+                    onPressed: _isSaving
+                        ? null
+                        : () => Navigator.of(context).pop(),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: const Color(0xFF1E88E5),
                       side: const BorderSide(color: Color(0xFF1E88E5)),
@@ -422,11 +426,7 @@ class _ConfirmScanScreenState extends State<ConfirmScanScreen> {
             ],
             if (confidence == ParseConfidence.high && !isEmpty) ...[
               const SizedBox(width: 8),
-              Icon(
-                Icons.check_circle,
-                size: 16,
-                color: Colors.green.shade600,
-              ),
+              Icon(Icons.check_circle, size: 16, color: Colors.green.shade600),
             ],
           ],
         ),
@@ -439,8 +439,8 @@ class _ConfirmScanScreenState extends State<ConfirmScanScreen> {
               color: isLowConfidence && !isEmpty
                   ? Colors.orange.shade300
                   : isManualMissing
-                      ? Colors.red.shade300
-                      : Colors.grey.shade200,
+                  ? Colors.red.shade300
+                  : Colors.grey.shade200,
               width: (isLowConfidence && !isEmpty) || isManualMissing ? 2 : 1,
             ),
           ),
@@ -493,12 +493,12 @@ class _ConfirmScanScreenState extends State<ConfirmScanScreen> {
       ],
     );
   }
-  
+
   Widget _buildDetectionBanner() {
     final hasLowConfidence =
         widget.systolicConfidence == ParseConfidence.low ||
-            widget.diastolicConfidence == ParseConfidence.low ||
-            widget.pulseConfidence == ParseConfidence.low;
+        widget.diastolicConfidence == ParseConfidence.low ||
+        widget.pulseConfidence == ParseConfidence.low;
 
     final hasMissingValues = widget.requiresManualInput;
     final hasWarnings = widget.warnings.isNotEmpty;
