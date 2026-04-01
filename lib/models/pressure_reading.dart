@@ -14,11 +14,23 @@ class PressureReading {
   @Index()
   final DateTime date;
 
+  /// User ID for cloud sync (null for guest/unsynced).
+  String? userId;
+
+  /// Remote ID from Supabase (null if not synced).
+  String? remoteId;
+
+  /// Whether this reading has been synced to cloud.
+  bool isSynced;
+
   PressureReading({
     required this.systolic,
     required this.diastolic,
     required this.pulse,
     required this.date,
+    this.userId,
+    this.remoteId,
+    this.isSynced = false,
   });
 
   /// Classification based on blood pressure values.
@@ -74,6 +86,9 @@ class PressureReading {
     'diastolic': diastolic,
     'pulse': pulse,
     'date': date.toIso8601String(),
+    'user_id': userId,
+    'remote_id': remoteId,
+    'is_synced': isSynced,
   };
 
   factory PressureReading.fromJson(Map<String, dynamic> json) {
@@ -82,8 +97,33 @@ class PressureReading {
       diastolic: json['diastolic'] as int,
       pulse: json['pulse'] as int,
       date: DateTime.parse(json['date'] as String),
+      userId: json['user_id'] as String?,
+      remoteId: json['remote_id'] as String?,
+      isSynced: json['is_synced'] as bool? ?? false,
     );
   }
+
+  /// Create from Supabase response.
+  factory PressureReading.fromSupabase(Map<String, dynamic> json) {
+    return PressureReading(
+      systolic: json['systolic'] as int,
+      diastolic: json['diastolic'] as int,
+      pulse: json['pulse'] as int,
+      date: DateTime.parse(json['date'] as String),
+      userId: json['user_id'] as String?,
+      remoteId: json['id']?.toString(),
+      isSynced: true,
+    )..id = (json['local_id'] as int?) ?? Isar.autoIncrement;
+  }
+
+  /// Convert to Supabase format.
+  Map<String, dynamic> toSupabase() => {
+    'local_id': id,
+    'systolic': systolic,
+    'diastolic': diastolic,
+    'pulse': pulse,
+    'date': date.toIso8601String(),
+  };
 
   /// Encode a list of readings to a JSON string.
   static String encodeList(List<PressureReading> readings) {

@@ -3,6 +3,7 @@ import 'package:path_provider/path_provider.dart';
 import '../../models/pressure_reading.dart';
 import '../../models/reminder.dart';
 import '../../models/user_profile.dart';
+import '../../models/session_data.dart';
 
 /// Singleton class that manages the Isar database instance.
 ///
@@ -37,7 +38,12 @@ class LocalDatabase {
     final dir = await getApplicationDocumentsDirectory();
 
     _isar = await Isar.open(
-      [PressureReadingSchema, ReminderSchema, UserProfileSchema],
+      [
+        PressureReadingSchema,
+        ReminderSchema,
+        UserProfileSchema,
+        SessionDataSchema,
+      ],
       directory: dir.path,
       name: 'pulse_track_db',
     );

@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../data/repositories/user_profile_repository.dart';
 import '../../../models/user_profile.dart';
+import '../../../services/auth_service.dart';
+import '../../../services/sync_service.dart';
+import '../../../services/session_service.dart';
 import '../../dashboard/screens/dashboard_screen.dart';
 
 class AppEntryScreen extends StatefulWidget {
@@ -24,6 +27,16 @@ class _AppEntryScreenState extends State<AppEntryScreen> {
   Future<void> _loadState() async {
     final prefs = await SharedPreferences.getInstance();
     final completed = prefs.getBool('onboarding_completed') ?? false;
+    
+    // If onboarding was completed, check if we have a valid session
+    if (completed) {
+      final hasSession = await SessionService.instance.hasSession;
+      if (!hasSession) {
+        // Session expired or cleared, but onboarding was done
+        // Still go to dashboard (guest mode or will prompt login)
+      }
+    }
+    
     if (!mounted) return;
     setState(() {
       _onboardingCompleted = completed;
@@ -89,13 +102,43 @@ class _OnboardingFlowScreenState extends State<OnboardingFlowScreen> {
   int get _totalPages => _introPages.length + 2;
 
   @override
+  void initState() {
+    super.initState();
+    // Set up callback for login completion
+    AuthService.onLoginComplete = _onLoginComplete;
+  }
+
+  @override
   void dispose() {
+    AuthService.onLoginComplete = null;
     _pageController.dispose();
     _nameController.dispose();
     _ageController.dispose();
     _weightController.dispose();
     _heightController.dispose();
     super.dispose();
+  }
+
+  /// Called when Google login completes (via deep link callback).
+  void _onLoginComplete(bool hasProfile) async {
+    if (!mounted) return;
+    
+    setState(() => _isGoogleLoading = false);
+
+    if (hasProfile) {
+      // Profile exists in cloud, mark onboarding as complete and go to dashboard
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool('onboarding_completed', true);
+      
+      if (!mounted) return;
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (_) => const DashboardScreen()),
+        (_) => false,
+      );
+    } else {
+      // No profile in cloud, go to profile creation
+      await _nextPage();
+    }
   }
 
   Future<void> _nextPage() async {
@@ -107,12 +150,42 @@ class _OnboardingFlowScreenState extends State<OnboardingFlowScreen> {
     }
   }
 
-  Future<void> _mockGoogleSignIn() async {
+  Future<void> _handleGoogleSignIn() async {
     if (_isGoogleLoading) return;
+    
+    // Check if Supabase is configured
+    if (!AuthService.instance.isSupabaseAvailable) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Google Sign-In no está configurado. Continuando como invitado.'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+      await _handleContinueAsGuest();
+      return;
+    }
+
     setState(() => _isGoogleLoading = true);
-    await Future.delayed(const Duration(milliseconds: 900));
+    try {
+      await AuthService.instance.signInWithGoogle();
+      // OAuth opens browser - callback will be handled by _onLoginComplete
+      // Keep loading state until callback fires
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _isGoogleLoading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error al iniciar sesión: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  Future<void> _handleContinueAsGuest() async {
+    await AuthService.instance.continueAsGuest();
     if (!mounted) return;
-    setState(() => _isGoogleLoading = false);
     await _nextPage();
   }
 
@@ -129,6 +202,12 @@ class _OnboardingFlowScreenState extends State<OnboardingFlowScreen> {
         height: double.parse(_heightController.text.trim()),
       );
       await UserProfileRepository.instance.updateProfile(profile);
+
+      // Migrate any existing local data to cloud if logged in
+      // This handles the case where user was guest and now logged in
+      SyncService.instance.migrateGuestData().catchError((e) {
+        print('[Onboarding] Guest migration failed: $e');
+      });
 
       final prefs = await SharedPreferences.getInstance();
       await prefs.setBool('onboarding_completed', true);
@@ -252,7 +331,7 @@ class _OnboardingFlowScreenState extends State<OnboardingFlowScreen> {
           ),
           const SizedBox(height: 12),
           const Text(
-            'Conecta con Google para sincronizar tu progreso en futuras versiones con Supabase.',
+            'Conecta con Google para sincronizar tu progreso en la nube.',
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 16,
@@ -265,7 +344,7 @@ class _OnboardingFlowScreenState extends State<OnboardingFlowScreen> {
             width: double.infinity,
             height: 58,
             child: ElevatedButton.icon(
-              onPressed: _isGoogleLoading ? null : _mockGoogleSignIn,
+              onPressed: _isGoogleLoading ? null : _handleGoogleSignIn,
               icon: _isGoogleLoading
                   ? const SizedBox(
                       width: 20,
@@ -286,7 +365,7 @@ class _OnboardingFlowScreenState extends State<OnboardingFlowScreen> {
           ),
           const SizedBox(height: 12),
           TextButton(
-            onPressed: _nextPage,
+            onPressed: _handleContinueAsGuest,
             child: const Text('Continuar sin cuenta'),
           ),
         ],

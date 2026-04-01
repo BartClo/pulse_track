@@ -27,15 +27,30 @@ const PressureReadingSchema = CollectionSchema(
       name: r'diastolic',
       type: IsarType.long,
     ),
-    r'pulse': PropertySchema(
+    r'isSynced': PropertySchema(
       id: 2,
+      name: r'isSynced',
+      type: IsarType.bool,
+    ),
+    r'pulse': PropertySchema(
+      id: 3,
       name: r'pulse',
       type: IsarType.long,
     ),
+    r'remoteId': PropertySchema(
+      id: 4,
+      name: r'remoteId',
+      type: IsarType.string,
+    ),
     r'systolic': PropertySchema(
-      id: 3,
+      id: 5,
       name: r'systolic',
       type: IsarType.long,
+    ),
+    r'userId': PropertySchema(
+      id: 6,
+      name: r'userId',
+      type: IsarType.string,
     )
   },
   estimateSize: _pressureReadingEstimateSize,
@@ -72,6 +87,18 @@ int _pressureReadingEstimateSize(
   Map<Type, List<int>> allOffsets,
 ) {
   var bytesCount = offsets.last;
+  {
+    final value = object.remoteId;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
+  {
+    final value = object.userId;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
   return bytesCount;
 }
 
@@ -83,8 +110,11 @@ void _pressureReadingSerialize(
 ) {
   writer.writeDateTime(offsets[0], object.date);
   writer.writeLong(offsets[1], object.diastolic);
-  writer.writeLong(offsets[2], object.pulse);
-  writer.writeLong(offsets[3], object.systolic);
+  writer.writeBool(offsets[2], object.isSynced);
+  writer.writeLong(offsets[3], object.pulse);
+  writer.writeString(offsets[4], object.remoteId);
+  writer.writeLong(offsets[5], object.systolic);
+  writer.writeString(offsets[6], object.userId);
 }
 
 PressureReading _pressureReadingDeserialize(
@@ -96,8 +126,11 @@ PressureReading _pressureReadingDeserialize(
   final object = PressureReading(
     date: reader.readDateTime(offsets[0]),
     diastolic: reader.readLong(offsets[1]),
-    pulse: reader.readLong(offsets[2]),
-    systolic: reader.readLong(offsets[3]),
+    isSynced: reader.readBoolOrNull(offsets[2]) ?? false,
+    pulse: reader.readLong(offsets[3]),
+    remoteId: reader.readStringOrNull(offsets[4]),
+    systolic: reader.readLong(offsets[5]),
+    userId: reader.readStringOrNull(offsets[6]),
   );
   object.id = id;
   return object;
@@ -115,9 +148,15 @@ P _pressureReadingDeserializeProp<P>(
     case 1:
       return (reader.readLong(offset)) as P;
     case 2:
-      return (reader.readLong(offset)) as P;
+      return (reader.readBoolOrNull(offset) ?? false) as P;
     case 3:
       return (reader.readLong(offset)) as P;
+    case 4:
+      return (reader.readStringOrNull(offset)) as P;
+    case 5:
+      return (reader.readLong(offset)) as P;
+    case 6:
+      return (reader.readStringOrNull(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
   }
@@ -487,6 +526,16 @@ extension PressureReadingQueryFilter
   }
 
   QueryBuilder<PressureReading, PressureReading, QAfterFilterCondition>
+      isSyncedEqualTo(bool value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'isSynced',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<PressureReading, PressureReading, QAfterFilterCondition>
       pulseEqualTo(int value) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.equalTo(
@@ -538,6 +587,160 @@ extension PressureReadingQueryFilter
         includeLower: includeLower,
         upper: upper,
         includeUpper: includeUpper,
+      ));
+    });
+  }
+
+  QueryBuilder<PressureReading, PressureReading, QAfterFilterCondition>
+      remoteIdIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'remoteId',
+      ));
+    });
+  }
+
+  QueryBuilder<PressureReading, PressureReading, QAfterFilterCondition>
+      remoteIdIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'remoteId',
+      ));
+    });
+  }
+
+  QueryBuilder<PressureReading, PressureReading, QAfterFilterCondition>
+      remoteIdEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'remoteId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PressureReading, PressureReading, QAfterFilterCondition>
+      remoteIdGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'remoteId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PressureReading, PressureReading, QAfterFilterCondition>
+      remoteIdLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'remoteId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PressureReading, PressureReading, QAfterFilterCondition>
+      remoteIdBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'remoteId',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PressureReading, PressureReading, QAfterFilterCondition>
+      remoteIdStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'remoteId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PressureReading, PressureReading, QAfterFilterCondition>
+      remoteIdEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'remoteId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PressureReading, PressureReading, QAfterFilterCondition>
+      remoteIdContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'remoteId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PressureReading, PressureReading, QAfterFilterCondition>
+      remoteIdMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'remoteId',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PressureReading, PressureReading, QAfterFilterCondition>
+      remoteIdIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'remoteId',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<PressureReading, PressureReading, QAfterFilterCondition>
+      remoteIdIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'remoteId',
+        value: '',
       ));
     });
   }
@@ -597,6 +800,160 @@ extension PressureReadingQueryFilter
       ));
     });
   }
+
+  QueryBuilder<PressureReading, PressureReading, QAfterFilterCondition>
+      userIdIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'userId',
+      ));
+    });
+  }
+
+  QueryBuilder<PressureReading, PressureReading, QAfterFilterCondition>
+      userIdIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'userId',
+      ));
+    });
+  }
+
+  QueryBuilder<PressureReading, PressureReading, QAfterFilterCondition>
+      userIdEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'userId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PressureReading, PressureReading, QAfterFilterCondition>
+      userIdGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'userId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PressureReading, PressureReading, QAfterFilterCondition>
+      userIdLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'userId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PressureReading, PressureReading, QAfterFilterCondition>
+      userIdBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'userId',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PressureReading, PressureReading, QAfterFilterCondition>
+      userIdStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'userId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PressureReading, PressureReading, QAfterFilterCondition>
+      userIdEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'userId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PressureReading, PressureReading, QAfterFilterCondition>
+      userIdContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'userId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PressureReading, PressureReading, QAfterFilterCondition>
+      userIdMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'userId',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PressureReading, PressureReading, QAfterFilterCondition>
+      userIdIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'userId',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<PressureReading, PressureReading, QAfterFilterCondition>
+      userIdIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'userId',
+        value: '',
+      ));
+    });
+  }
 }
 
 extension PressureReadingQueryObject
@@ -634,6 +991,20 @@ extension PressureReadingQuerySortBy
     });
   }
 
+  QueryBuilder<PressureReading, PressureReading, QAfterSortBy>
+      sortByIsSynced() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isSynced', Sort.asc);
+    });
+  }
+
+  QueryBuilder<PressureReading, PressureReading, QAfterSortBy>
+      sortByIsSyncedDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isSynced', Sort.desc);
+    });
+  }
+
   QueryBuilder<PressureReading, PressureReading, QAfterSortBy> sortByPulse() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'pulse', Sort.asc);
@@ -648,6 +1019,20 @@ extension PressureReadingQuerySortBy
   }
 
   QueryBuilder<PressureReading, PressureReading, QAfterSortBy>
+      sortByRemoteId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'remoteId', Sort.asc);
+    });
+  }
+
+  QueryBuilder<PressureReading, PressureReading, QAfterSortBy>
+      sortByRemoteIdDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'remoteId', Sort.desc);
+    });
+  }
+
+  QueryBuilder<PressureReading, PressureReading, QAfterSortBy>
       sortBySystolic() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'systolic', Sort.asc);
@@ -658,6 +1043,19 @@ extension PressureReadingQuerySortBy
       sortBySystolicDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'systolic', Sort.desc);
+    });
+  }
+
+  QueryBuilder<PressureReading, PressureReading, QAfterSortBy> sortByUserId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'userId', Sort.asc);
+    });
+  }
+
+  QueryBuilder<PressureReading, PressureReading, QAfterSortBy>
+      sortByUserIdDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'userId', Sort.desc);
     });
   }
 }
@@ -703,6 +1101,20 @@ extension PressureReadingQuerySortThenBy
     });
   }
 
+  QueryBuilder<PressureReading, PressureReading, QAfterSortBy>
+      thenByIsSynced() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isSynced', Sort.asc);
+    });
+  }
+
+  QueryBuilder<PressureReading, PressureReading, QAfterSortBy>
+      thenByIsSyncedDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isSynced', Sort.desc);
+    });
+  }
+
   QueryBuilder<PressureReading, PressureReading, QAfterSortBy> thenByPulse() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'pulse', Sort.asc);
@@ -717,6 +1129,20 @@ extension PressureReadingQuerySortThenBy
   }
 
   QueryBuilder<PressureReading, PressureReading, QAfterSortBy>
+      thenByRemoteId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'remoteId', Sort.asc);
+    });
+  }
+
+  QueryBuilder<PressureReading, PressureReading, QAfterSortBy>
+      thenByRemoteIdDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'remoteId', Sort.desc);
+    });
+  }
+
+  QueryBuilder<PressureReading, PressureReading, QAfterSortBy>
       thenBySystolic() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'systolic', Sort.asc);
@@ -727,6 +1153,19 @@ extension PressureReadingQuerySortThenBy
       thenBySystolicDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'systolic', Sort.desc);
+    });
+  }
+
+  QueryBuilder<PressureReading, PressureReading, QAfterSortBy> thenByUserId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'userId', Sort.asc);
+    });
+  }
+
+  QueryBuilder<PressureReading, PressureReading, QAfterSortBy>
+      thenByUserIdDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'userId', Sort.desc);
     });
   }
 }
@@ -746,9 +1185,23 @@ extension PressureReadingQueryWhereDistinct
     });
   }
 
+  QueryBuilder<PressureReading, PressureReading, QDistinct>
+      distinctByIsSynced() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'isSynced');
+    });
+  }
+
   QueryBuilder<PressureReading, PressureReading, QDistinct> distinctByPulse() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'pulse');
+    });
+  }
+
+  QueryBuilder<PressureReading, PressureReading, QDistinct> distinctByRemoteId(
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'remoteId', caseSensitive: caseSensitive);
     });
   }
 
@@ -756,6 +1209,13 @@ extension PressureReadingQueryWhereDistinct
       distinctBySystolic() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'systolic');
+    });
+  }
+
+  QueryBuilder<PressureReading, PressureReading, QDistinct> distinctByUserId(
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'userId', caseSensitive: caseSensitive);
     });
   }
 }
@@ -780,15 +1240,33 @@ extension PressureReadingQueryProperty
     });
   }
 
+  QueryBuilder<PressureReading, bool, QQueryOperations> isSyncedProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'isSynced');
+    });
+  }
+
   QueryBuilder<PressureReading, int, QQueryOperations> pulseProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'pulse');
     });
   }
 
+  QueryBuilder<PressureReading, String?, QQueryOperations> remoteIdProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'remoteId');
+    });
+  }
+
   QueryBuilder<PressureReading, int, QQueryOperations> systolicProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'systolic');
+    });
+  }
+
+  QueryBuilder<PressureReading, String?, QQueryOperations> userIdProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'userId');
     });
   }
 }

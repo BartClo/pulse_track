@@ -57,6 +57,9 @@ dependencies:
   # Export / Share
   share_plus: ^10.0.0
   pdf: ^3.11.1
+  
+  # Authentication
+  supabase_flutter: ^2.8.0
 
 dev_dependencies:
   flutter_test:

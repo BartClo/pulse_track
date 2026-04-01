@@ -1,10 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'features/onboarding/screens/onboarding_flow_screen.dart';
 import 'features/reminders/screens/alarm_screen.dart';
 import 'data/datasources/local_db.dart';
 import 'services/notification_service.dart';
 import 'services/insight_notification_service.dart';
+import 'services/auth_service.dart';
+import 'services/supabase_service.dart';
+import 'services/sync_service.dart';
+import 'services/session_service.dart';
 import 'data/repositories/pressure_repository.dart';
+import 'core/supabase_config.dart';
 
 /// Global navigator key for navigation from notifications
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
@@ -14,6 +20,24 @@ void main() async {
 
   // Initialize Isar database
   await LocalDatabase.initialize();
+
+  // Initialize Supabase (if configured)
+  if (SupabaseConfig.isConfigured) {
+    await Supabase.initialize(
+      url: SupabaseConfig.url,
+      anonKey: SupabaseConfig.anonKey,
+    );
+  }
+
+  // Initialize services
+  SupabaseService.instance.initialize();
+  AuthService.instance.initialize();
+
+  // Restore any existing Supabase session
+  await AuthService.instance.restoreSession();
+
+  // Sync from cloud if logged in (non-blocking)
+  _performStartupSync();
 
   // Initialize notification service
   await NotificationService.instance.initialize();
@@ -28,6 +52,18 @@ void main() async {
   await InsightNotificationService.instance.runDailyCheck(recentReadings);
 
   runApp(const MyApp());
+}
+
+/// Performs cloud sync on app startup (non-blocking).
+void _performStartupSync() async {
+  try {
+    final isLoggedIn = await SessionService.instance.isLoggedIn;
+    if (isLoggedIn) {
+      await SyncService.instance.syncFromCloud();
+    }
+  } catch (e) {
+    print('[main] Startup sync failed: $e');
+  }
 }
 
 class MyApp extends StatefulWidget {
