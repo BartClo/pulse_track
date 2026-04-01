@@ -1,77 +1,101 @@
 import 'package:flutter/material.dart';
 import '../../../models/pressure_reading.dart';
+import '../../../core/theme/app_theme.dart';
 
 class HistoryReadingCard extends StatelessWidget {
   final PressureReading reading;
+  final int index;
 
-  const HistoryReadingCard({super.key, required this.reading});
+  const HistoryReadingCard({super.key, required this.reading, this.index = 0});
 
   @override
   Widget build(BuildContext context) {
     final statusColor = Color(reading.statusColorValue);
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFEEEEEE)),
-      ),
-      child: IntrinsicHeight(
-        child: Row(
-          children: [
-            // Left color strip
-            Container(
-              width: 4,
-              decoration: BoxDecoration(
-                color: statusColor,
-                borderRadius: const BorderRadius.only(
-                  topLeft: Radius.circular(14),
-                  bottomLeft: Radius.circular(14),
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0.0, end: 1.0),
+      duration: Duration(milliseconds: 300 + (index * 50).clamp(0, 200)),
+      curve: Curves.easeOutCubic,
+      builder: (context, value, child) {
+        return Opacity(
+          opacity: value,
+          child: Transform.translate(
+            offset: Offset(0, 20 * (1 - value)),
+            child: child,
+          ),
+        );
+      },
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: AppRadius.largeRadius,
+          boxShadow: AppShadows.small,
+          border: Border.all(color: AppColors.borderLight),
+        ),
+        child: IntrinsicHeight(
+          child: Row(
+            children: [
+              Container(
+                width: 5,
+                decoration: BoxDecoration(
+                  color: statusColor,
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(16),
+                    bottomLeft: Radius.circular(16),
+                  ),
                 ),
               ),
-            ),
-            // Content
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 14,
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Timestamp + status badge
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          reading.formattedDate,
-                          style: const TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
-                            color: Color(0xFF1A1A2E),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 14,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.schedule_rounded,
+                                size: 14,
+                                color: AppColors.textHint,
+                              ),
+                              const SizedBox(width: 6),
+                              Text(
+                                reading.formattedDate,
+                                style: AppTextStyles.labelLarge.copyWith(
+                                  color: AppColors.textPrimary,
+                                ),
+                              ),
+                            ],
                           ),
-                        ),
-                        _StatusBadge(label: reading.status, color: statusColor),
-                      ],
-                    ),
-                    const SizedBox(height: 10),
-                    // SYS / DIA / Pulse values
-                    Row(
-                      children: [
-                        _ValueColumn(label: 'SYS', value: reading.systolic),
-                        const SizedBox(width: 24),
-                        _ValueColumn(label: 'DIA', value: reading.diastolic),
-                        const SizedBox(width: 24),
-                        _PulseValue(pulse: reading.pulse),
-                      ],
-                    ),
-                  ],
+                          _StatusBadge(
+                            label: reading.status,
+                            color: statusColor,
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 14),
+                      Row(
+                        children: [
+                          _ValueColumn(label: 'SYS', value: reading.systolic),
+                          const SizedBox(width: 28),
+                          _ValueColumn(label: 'DIA', value: reading.diastolic),
+                          const Spacer(),
+                          _PulseValue(pulse: reading.pulse),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -86,24 +110,31 @@ class _StatusBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          width: 8,
-          height: 8,
-          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-        ),
-        const SizedBox(width: 6),
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 13,
-            fontWeight: FontWeight.w600,
-            color: color,
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 6,
+            height: 6,
+            decoration: BoxDecoration(color: color, shape: BoxShape.circle),
           ),
-        ),
-      ],
+          const SizedBox(width: 5),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: color,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -121,20 +152,12 @@ class _ValueColumn extends StatelessWidget {
       children: [
         Text(
           label,
-          style: TextStyle(
-            fontSize: 11,
-            fontWeight: FontWeight.w500,
-            color: Colors.grey.shade500,
-          ),
+          style: AppTextStyles.labelSmall.copyWith(fontWeight: FontWeight.w600),
         ),
+        const SizedBox(height: 2),
         Text(
           '$value',
-          style: const TextStyle(
-            fontSize: 28,
-            fontWeight: FontWeight.bold,
-            color: Color(0xFF1A1A2E),
-            height: 1.2,
-          ),
+          style: AppTextStyles.bpValueSmall.copyWith(fontSize: 28),
         ),
       ],
     );
@@ -148,37 +171,38 @@ class _PulseValue extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Icon(
-              Icons.monitor_heart_outlined,
-              size: 12,
-              color: Colors.grey.shade500,
-            ),
-            const SizedBox(width: 3),
-            Text(
-              'Pulso',
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w500,
-                color: Colors.grey.shade500,
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceVariant,
+        borderRadius: AppRadius.mediumRadius,
+      ),
+      child: Column(
+        children: [
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.favorite_rounded,
+                size: 12,
+                color: AppColors.error.withOpacity(0.7),
               ),
-            ),
-          ],
-        ),
-        Text(
-          '$pulse',
-          style: const TextStyle(
-            fontSize: 28,
-            fontWeight: FontWeight.bold,
-            color: Color(0xFF1A1A2E),
-            height: 1.2,
+              const SizedBox(width: 4),
+              Text(
+                'Pulso',
+                style: AppTextStyles.labelSmall.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
           ),
-        ),
-      ],
+          const SizedBox(height: 4),
+          Text(
+            '$pulse',
+            style: AppTextStyles.h3.copyWith(fontWeight: FontWeight.w700),
+          ),
+        ],
+      ),
     );
   }
 }

@@ -26,7 +26,6 @@ class SyncService {
   DateTime? _lastSyncDate;
 
   static const String _lastSyncKey = 'last_sync_date';
-  static const String _lastProfileSyncKey = 'last_profile_sync_date';
 
   /// Whether a sync is currently in progress.
   bool get isSyncing => _isSyncing;

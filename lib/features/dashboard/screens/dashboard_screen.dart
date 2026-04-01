@@ -11,6 +11,8 @@ import '../../reminders/screens/reminders_screen.dart';
 import '../../profile/screens/profile_screen.dart';
 import '../../../models/dashboard_data.dart';
 import '../../../data/repositories/pressure_repository.dart';
+import '../../../core/theme/app_theme.dart';
+import '../../../core/navigation/page_transitions.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -20,7 +22,6 @@ class DashboardScreen extends StatefulWidget {
 }
 
 class _DashboardScreenState extends State<DashboardScreen> {
-  // Stream initialized once in initState, not recreated on every build
   late final Stream<DashboardData> _dashboardStream;
 
   @override
@@ -32,38 +33,57 @@ class _DashboardScreenState extends State<DashboardScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF2F4F8),
+      backgroundColor: AppColors.background,
       body: StreamBuilder<DashboardData>(
         stream: _dashboardStream,
         builder: (context, snapshot) {
-          // Error state
           if (snapshot.hasError) {
             return _buildErrorState(snapshot.error.toString());
           }
 
-          // Loading state (only show on initial load)
           if (snapshot.connectionState == ConnectionState.waiting &&
               !snapshot.hasData) {
-            return const Center(child: CircularProgressIndicator());
+            return Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  SizedBox(
+                    width: 48,
+                    height: 48,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 3,
+                      valueColor: AlwaysStoppedAnimation(AppColors.primary),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Cargando...',
+                    style: AppTextStyles.bodyMedium.copyWith(
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                ],
+              ),
+            );
           }
 
-          // Data state - use pre-computed DashboardData
           final data = snapshot.data ?? DashboardData.fromReadings([]);
 
           return SingleChildScrollView(
+            physics: const BouncingScrollPhysics(),
             child: Column(
               children: [
                 HeaderWidget(
                   averageValue: data.averageDisplay,
                   todayValue: data.todayDisplay,
                   onProfileTap: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(builder: (_) => const ProfileScreen()),
-                    );
+                    Navigator.of(
+                      context,
+                    ).push(FadeScalePageRoute(page: const ProfileScreen()));
                   },
                 ),
                 Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 20, 16, 24),
+                  padding: const EdgeInsets.fromLTRB(20, 24, 20, 32),
                   child: Column(
                     children: [
                       if (!data.isEmpty)
@@ -79,64 +99,58 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         )
                       else
                         _buildEmptyCard(),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 20),
                       PrimaryButton(
                         label: 'Registrar nueva medición',
-                        icon: Icons.add,
+                        icon: Icons.add_rounded,
                         onPressed: () {
                           Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder: (_) => const PressureEntryScreen(),
-                            ),
+                            SlideUpPageRoute(page: const PressureEntryScreen()),
                           );
                         },
                       ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 20),
                       ReminderCard(
                         time: '08:00',
                         day: 'Mañana',
                         onTap: () {
                           Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder: (_) => const RemindersScreen(),
-                            ),
+                            FadeScalePageRoute(page: const RemindersScreen()),
                           );
                         },
                       ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 20),
                       Row(
                         children: [
                           QuickActionTile(
-                            icon: Icons.history,
+                            icon: Icons.history_rounded,
                             label: 'Historial',
                             onTap: () {
                               Navigator.of(context).push(
-                                MaterialPageRoute(
-                                  builder: (_) => const HistoryScreen(),
+                                SharedAxisPageRoute(
+                                  page: const HistoryScreen(),
                                 ),
                               );
                             },
                           ),
-                          const SizedBox(width: 8),
+                          const SizedBox(width: 12),
                           QuickActionTile(
-                            icon: Icons.bar_chart,
+                            icon: Icons.bar_chart_rounded,
                             label: 'Gráficos',
                             onTap: () {
                               Navigator.of(context).push(
-                                MaterialPageRoute(
-                                  builder: (_) => const ChartsScreen(),
-                                ),
+                                SharedAxisPageRoute(page: const ChartsScreen()),
                               );
                             },
                           ),
-                          const SizedBox(width: 8),
+                          const SizedBox(width: 12),
                           QuickActionTile(
-                            icon: Icons.notifications_outlined,
+                            icon: Icons.notifications_rounded,
                             label: 'Alarmas',
                             onTap: () {
                               Navigator.of(context).push(
-                                MaterialPageRoute(
-                                  builder: (_) => const RemindersScreen(),
+                                FadeScalePageRoute(
+                                  page: const RemindersScreen(),
                                 ),
                               );
                             },
@@ -155,32 +169,40 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Widget _buildEmptyCard() {
-    return Card(
-      elevation: 0,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      color: Colors.white,
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: AppRadius.extraLargeRadius,
+        boxShadow: AppShadows.small,
+        border: Border.all(color: AppColors.borderLight, width: 1),
+      ),
       child: Padding(
-        padding: const EdgeInsets.all(32),
+        padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 24),
         child: Column(
           children: [
-            Icon(
-              Icons.monitor_heart_outlined,
-              size: 48,
-              color: Colors.grey.shade400,
-            ),
-            const SizedBox(height: 12),
-            Text(
-              'Sin mediciones aún',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: Colors.grey.shade600,
+            Container(
+              width: 72,
+              height: 72,
+              decoration: BoxDecoration(
+                color: AppColors.primary.withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.monitor_heart_outlined,
+                size: 36,
+                color: AppColors.primary,
               ),
             ),
-            const SizedBox(height: 4),
+            const SizedBox(height: 20),
+            Text('Sin mediciones aún', style: AppTextStyles.h4),
+            const SizedBox(height: 8),
             Text(
-              'Registra tu primera medición',
-              style: TextStyle(fontSize: 14, color: Colors.grey.shade500),
+              'Registra tu primera medición para\ncomenzar a monitorear tu salud',
+              textAlign: TextAlign.center,
+              style: AppTextStyles.bodyMedium.copyWith(
+                color: AppColors.textSecondary,
+              ),
             ),
           ],
         ),
@@ -195,21 +217,28 @@ class _DashboardScreenState extends State<DashboardScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.error_outline, size: 64, color: Colors.red.shade300),
-            const SizedBox(height: 16),
-            Text(
-              'Error al cargar datos',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
-                color: Colors.grey.shade700,
+            Container(
+              width: 80,
+              height: 80,
+              decoration: BoxDecoration(
+                color: AppColors.error.withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.error_outline_rounded,
+                size: 40,
+                color: AppColors.error,
               ),
             ),
+            const SizedBox(height: 24),
+            Text('Error al cargar datos', style: AppTextStyles.h3),
             const SizedBox(height: 8),
             Text(
               error,
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 14, color: Colors.grey.shade500),
+              style: AppTextStyles.bodyMedium.copyWith(
+                color: AppColors.textSecondary,
+              ),
             ),
           ],
         ),
